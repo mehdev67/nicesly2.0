@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Brain, TrendingUp, CheckCircle, Lock, Users, ArrowRight, Menu, X, Zap, EyeOff, Scale, HardHat, QrCode, LogIn, Mail, AtSign, Globe } from 'lucide-react';
+import { BasicDashboard, CourierDashboard, GuardianDashboard } from './MemberDashboard';
 
 // --- Reusable Components (Defined outside main function) ---
 
@@ -178,8 +179,8 @@ const BankIDSuccessOverlay = ({ show }) => {
   );
 };
 
-const TierSelectionView = ({ goToHome }) => {
-  const [selectedTier, setSelectedTier] = useState(null);
+const TierSelectionView = ({ goToHome, onTierSelect }) => {
+  const [localSelectedTier, setLocalSelectedTier] = useState(null);
   const [redirecting, setRedirecting] = useState(false);
 
   const tiers = [
@@ -231,42 +232,24 @@ const TierSelectionView = ({ goToHome }) => {
   ];
 
   const handleTierSelect = async (tier) => {
-    setSelectedTier(tier.name);
+    setLocalSelectedTier(tier.name);
     setRedirecting(true);
 
     try {
-      // In production, you would:
-      // 1. Create a checkout session on your backend
-      // 2. Get the checkout URL from Stripe
-      // 3. Redirect to Stripe checkout
-      
-      // Example API call:
-      // const response = await fetch('/api/create-checkout-session', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     productId: tier.stripeProductId,
-      //     userId: 'user-id-here'
-      //   })
-      // });
-      // const { checkoutUrl } = await response.json();
-      // window.location.href = checkoutUrl;
+      // In production, you would do Stripe checkout here
+      // For demo purposes, we'll go directly to dashboard
+      console.log('Selected tier:', tier.name, 'Product ID:', tier.stripeProductId);
 
-      // For demo purposes:
-      console.log('Redirecting to Stripe for product:', tier.stripeProductId);
-      
-      // Simulate redirect delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In production, this would be the actual Stripe checkout URL
-      alert(`Redirecting till Stripe checkout...\nProdukt: ${tier.name}\nProduct ID: ${tier.stripeProductId}`);
-      
-      // window.location.href = checkoutUrl;
-      
+      // Simulate loading
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Navigate to dashboard with selected tier
+      onTierSelect(tier.name);
+
     } catch (error) {
-      console.error('Checkout error:', error);
+      console.error('Selection error:', error);
       alert('Ett fel uppstod. Försök igen.');
-      setSelectedTier(null);
+      setLocalSelectedTier(null);
     } finally {
       setRedirecting(false);
     }
@@ -362,14 +345,14 @@ const TierSelectionView = ({ goToHome }) => {
                 
                 <button
                   onClick={() => handleTierSelect(tier)}
-                  disabled={selectedTier === tier.name || redirecting}
+                  disabled={localSelectedTier === tier.name || redirecting}
                   className={`w-full px-6 py-4 rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${tier.buttonClass}`}
                 >
-                  {selectedTier === tier.name ? (
+                  {localSelectedTier === tier.name ? (
                     redirecting ? (
                       <div className="flex items-center justify-center">
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Omdirigerar...
+                        Laddar dashboard...
                       </div>
                     ) : (
                       'Vald ✓'
@@ -411,6 +394,7 @@ export default function NiceslyWebsite() {
   const [personalNumber, setPersonalNumber] = useState(''); // Personal number for BankID
   const [signing, setSigning] = useState(false); // BankID signing state
   const [showBankIDSuccess, setShowBankIDSuccess] = useState(false); // Show BankID success screen
+  const [selectedTier, setSelectedTier] = useState(null); // Track which tier was selected for dashboard
 
   // --- Simulation Steps ---
 
@@ -1300,7 +1284,26 @@ export default function NiceslyWebsite() {
     />;
   } else if (currentView === 'tier-selection') {
     heroBgClass = 'bg-white';
-    content = <TierSelectionView goToHome={goToHome} />;
+    content = <TierSelectionView
+      goToHome={goToHome}
+      onTierSelect={(tierName) => {
+        setSelectedTier(tierName);
+        setCurrentView('dashboard');
+      }}
+    />;
+  } else if (currentView === 'dashboard') {
+    heroBgClass = 'bg-white';
+    // Render appropriate dashboard based on selected tier
+    if (selectedTier === 'AI-Brev') {
+      content = <BasicDashboard goToHome={goToHome} />;
+    } else if (selectedTier === 'AI-Brev + Kurir') {
+      content = <CourierDashboard goToHome={goToHome} />;
+    } else if (selectedTier === 'Total AI-Ombud') {
+      content = <GuardianDashboard goToHome={goToHome} />;
+    } else {
+      // Fallback to basic if tier not recognized
+      content = <BasicDashboard goToHome={goToHome} />;
+    }
   }
 
   return (
